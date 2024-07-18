@@ -5,7 +5,11 @@
 import random
 import copy
 import math
+import time
 from itertools import combinations
+import matplotlib.pyplot as plt
+import pandas as pd
+from plottable import Table, ColumnDefinition
 
 # setup array for schedule and initialize other variables
 sche = [["", "", "", "", "", "", ""],
@@ -73,18 +77,20 @@ def generate_days_off():
 
 
 def main():
+    start_time= time.time()
     best_sche = []
     best_score = 10000
     best_days_off = {}
-    tries = 200
+    tries = 500
     sche_attempts = 0
     print(count_conflicts(sche)[0])
+    average_time = 1
     while sche_attempts < tries:
-        if sche_attempts % 5 == 0:
+        if sche_attempts % 3 == 0:
             generate_days_off()
         print("-------------------------------")
         # print(days_off)
-        current_score, current_report = least_conflicts(10)
+        current_score, current_report = least_conflicts(15)
         if current_score < best_score:
             best_sche = copy.deepcopy(sche)
             best_score = current_score
@@ -92,13 +98,18 @@ def main():
             best_days_off = days_off
         make_shift_dict(sche)
         view(sche)
+        total_time = time.time()-start_time
         sche_attempts += 1
+        average_time = total_time / sche_attempts
         print(str(sche_attempts) + " of " + str(tries) + " iterations complete. Current/Best Score: "
-              + str(current_score) + "/" + str(best_score))
+              + str(current_score) + "/" + str(best_score) + ".")
+        print("Time elapsed:", time_print(total_time), '|| Time remaining:',
+              time_print(average_time * (tries-sche_attempts)))
     print("********************BEST FOUND********************")
     print(best_days_off)
     view(best_sche)
     print("Score:", best_score, best_report)
+    large_view(best_sche)
     return best_score, best_sche
 
 
@@ -269,11 +280,32 @@ def count_conflicts(check_sche):
                 count_log += ["empty"]
     return count, count_log
 
-
-# function for drawing results
 def view(check_sche):
     for row in check_sche:
         print(row)
+
+
+# function for drawing results
+def large_view(check_sche):
+    sche_view = {'Shift': ['0000-0600', '0600-1200', '1200-1800', '1800-0000'],
+                 'Monday': [], 'Tuesday': [], 'Wednesday': [], 'Thursday': [],
+                 "Friday": [], "Saturday": [], "Sunday": []}
+    for row in check_sche:
+        sche_view['Monday'] += [row[0]]
+        sche_view['Tuesday'] += [row[1]]
+        sche_view['Wednesday'] += [row[2]]
+        sche_view['Thursday'] += [row[3]]
+        sche_view['Friday'] += [row[4]]
+        sche_view['Saturday'] += [row[5]]
+        sche_view['Sunday'] += [row[6]]
+    sche_df = pd.DataFrame(sche_view).set_index("Shift")
+    print(sche_df)
+    fig, ax = plt.subplots(figsize=(11, 5))
+    tab = Table(sche_df, textprops={"ha": "center"},
+                column_definitions=[ColumnDefinition(name="Shift", title="Shift",
+                                                     border='right', textprops={"ha": 'right'})])
+    plt.show()
+    plt.close(fig)
 
 
 def make_shift_dict(check_sche):
@@ -290,6 +322,15 @@ def make_shift_dict(check_sche):
 def reset_sche():
     for on_shift in all_shifts:
         sche[on_shift[0]][on_shift[1]] = ""
+
+def time_print(time_in_seconds):
+    seconds = time_in_seconds
+    if time_in_seconds > 60:
+        minutes = time_in_seconds // 60
+        seconds = time_in_seconds % 60
+        return ('%d' % minutes) + "m " + ('%d' % seconds) + "s."
+    else:
+        return '%.2f' % seconds + "s."
 
 
 main()

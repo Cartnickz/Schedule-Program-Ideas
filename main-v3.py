@@ -17,7 +17,7 @@ sche = [["", "", "", "", "", "", ""],
         ["", "", "", "", "", "", ""],
         ["", "", "", "", "", "", ""]]
 
-employees = ['SM', 'JB', 'ZC', 'BS', 'MD', 'ML', 'JC', 'JP', 'KT']
+employees = ['SM', 'JB', 'ZC', 'BS', 'MD', 'ML', 'JC', 'KT', 'JP']
 supervisors = ['SM', 'JB']
 
 # create all possible two/three/four-member crew combinations
@@ -76,12 +76,11 @@ def generate_days_off():
     days_off["SM"] = [3, 6]
 
 
-def main():
+def main(tries, repeats):
     start_time= time.time()
     best_sche = []
     best_score = 10000
     best_days_off = {}
-    tries = 500
     sche_attempts = 0
     print(count_conflicts(sche)[0])
     average_time = 1
@@ -90,7 +89,7 @@ def main():
             generate_days_off()
         print("-------------------------------")
         # print(days_off)
-        current_score, current_report = least_conflicts(15)
+        current_score, current_report = least_conflicts(repeats)
         if current_score < best_score:
             best_sche = copy.deepcopy(sche)
             best_score = current_score
@@ -133,6 +132,7 @@ def least_conflicts(repeat):
             crew_list_copy = expanded_crew_combos.copy()
         else:
             crew_list_copy = crew_combos.copy()
+        crew_list_copy = in_training("KT", supervisors, crew_list_copy)
         if best_crew_score > 0 or test_sche[x][y] == "":
             crews_remaining = True
             while crews_remaining:
@@ -147,7 +147,7 @@ def least_conflicts(repeat):
                 crews_remaining = len(crew_list_copy) != 0
         energy = best_crew_score - count_conflicts(sche)[0]
         if energy == 0:
-            probabilty = .05
+            probabilty = .1
         else:
             probabilty = math.e**(-energy/temp)
         random_num = random.random()
@@ -318,6 +318,13 @@ def make_shift_dict(check_sche):
                 shift_dict[person] += [on_shift]
     return shift_dict
 
+def in_training(person, supervisors, crew_list):
+    for crew in crew_list:
+        crew_split = crew.split("/")
+        if person in crew:
+            if not(supervisors[0] in crew_split) and not(supervisors[1] in crew_split):
+                crew_list.remove(crew)
+    return crew_list
 
 def reset_sche():
     for on_shift in all_shifts:
@@ -333,5 +340,5 @@ def time_print(time_in_seconds):
         return '%.2f' % seconds + "s."
 
 
-main()
+main(200, 12)
 
